@@ -7,6 +7,7 @@
 #include <set>
 #include <array>
 #include <algorithm>
+#include <iomanip>
 
 /*
 Predefined struct that holds that data for each record
@@ -25,7 +26,8 @@ struct drillingArray {
 };
 
 /*
-Function to double the size of the array used to store the drilling data*/
+Function to double the size of the array used to store the drilling data
+*/
 drillingArray* doubleDrillingArray(drillingArray* currentDrillingArray) {
 
 	//doubles capacity for new drilling array
@@ -42,8 +44,11 @@ drillingArray* doubleDrillingArray(drillingArray* currentDrillingArray) {
 	for (int i = 0; i < currentDrillingArray->capacity; i++) {
 		doubledDrillingRecord[i] = currentDrillingArray->data[i];
 	}
-
+	
+	//adds drilling record array to the new drilling array
 	newDrillingArray->data = doubledDrillingRecord;
+
+	//deletes the current array and frees the memory
 	delete currentDrillingArray;
 	currentDrillingArray = nullptr;
 
@@ -89,7 +94,7 @@ bool checkTimeStamp(std::string dataLine, std::set<std::string>& timeStamps, int
 	if (timeStampStartSize == (int)timeStamps.size()) {
 
 		//prints out error message
-		std::cout << "Duplicate time stamp " << timeStampToCheck << " at line " << lineNum << "." << std::endl;
+		std::cout << "Duplicate timestamp " << timeStampToCheck << " at line " << lineNum << "." << std::endl;
 		return false;
 	}
 	else {
@@ -134,9 +139,18 @@ int main()
 	//declare variables
 	int dataLineNum = 1;
 	std::string initialDateStamp = "";
+	int validLines = 0;
 
 	//declare set to hold all time stamps
 	std::set<std::string> timeStamps;
+
+	//declare drillingArray and drillingRecord
+	drillingArray* mainDrillingArray = new drillingArray;
+	drillingRecord* mainDrillingRecord = new drillingRecord[10];
+
+	//set drillingArray data and capacity
+	mainDrillingArray->data = mainDrillingRecord;
+	mainDrillingArray->capacity = 10;
 
 	//declares variable to store file line in and then skips the first line
 	std::string line = "";
@@ -145,7 +159,12 @@ int main()
 	//while loop to iterate through the file collecting data line by line
 	while (std::getline(std::cin, line)) {
 
-		drillingRecord* currRecord = new drillingRecord;
+		//checks if the array has reached capacity and calls function to double it if need be
+		if (validLines >= mainDrillingArray->capacity) {
+
+			mainDrillingArray = doubleDrillingArray(mainDrillingArray);
+		}
+		
 		//assign date stamp
 		if (initialDateStamp == "") {
 			initialDateStamp = line.substr(0, line.find(','));
@@ -160,16 +179,58 @@ int main()
 				//calls the checkFloatValues method to ensure they are positive
 				if (checkFloatValues(line, dataLineNum)) {
 
-					//replaces all of the commas with semicolons and then prints out the resulting string
-					std::replace(line.begin(), line.end(), ',', ';');
-					std::cout << line << std::endl;
+					//declares a drilling record to use and a string stream
+					drillingRecord currentRecord;
+					std::stringstream stringData(line);
+
+
+					//splices off the date and time stamp and puts them into the appropriate drilling record array
+					for (int i = 0; i < 2; i++) {
+						std::string tempData = "";
+						std::getline(stringData, tempData, ',');
+						currentRecord.strings[i] = tempData;
+						
+					}
+					
+					//splices off each piece of data, turns it to a float, and then puts it into the correct array
+					for (int i = 0; i < 16; i++) {
+						std::string tempData = "";
+						std::getline(stringData, tempData, ',');
+						float floatData = std::stof(tempData);
+						currentRecord.nums[i] = floatData;
+											
+					}
+
+					//adds the current drilling record to the drilling array and increments the number of valid lines
+					mainDrillingArray->data[validLines] = currentRecord;
+					validLines++;
+					
 				}
 			}
 		}
 		//increases the line number
 		dataLineNum++;
 	}
+	
+	//iterates through and prints out data
+	for (int i = validLines - 1; i >= 0; i--) {
 
+		//iterates through and prints out the date and time stamps
+		for (int j = 0; j < 2; j++) {
+			std::cout << mainDrillingArray->data[i].strings[j] << ";";
+		}
+
+		//iterates through and prints out the floating point data
+		for (int k = 0; k < 16; k++) {
+			if (k != 15) {
+				std::cout << std::fixed << std::setprecision(2) << mainDrillingArray->data[i].nums[k] << ";";
+			}
+			else {
+				std::cout << std::fixed << std::setprecision(2) << mainDrillingArray->data[i].nums[k] << std::endl;
+			}
+		}
+	}
+	
 	return 0;
 
 }
